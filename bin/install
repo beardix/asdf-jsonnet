@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+readonly TOOL_NAME="jsonnet"
+readonly DOWNLOAD_BASE_URL="https://github.com/google/jsonnet/archive"
+
+readonly TMP_DOWNLOAD_DIR="$(mktemp -d)"
+trap 'rm -rf "${TMP_DOWNLOAD_DIR?}"' EXIT
+
+#
+error_exit() {
+  echo "$1" >&2
+  exit "${2:-1}"
+}
+
+install() {
+  local -r install_type="$1"
+  local -r install_version="$2"
+  local -r install_path="$3"
+  local -r install_path_bin="${install_path}/bin"
+  local -r download_url="${DOWNLOAD_BASE_URL}/v${install_version}.tar.gz"
+  local -r download_path="${TMP_DOWNLOAD_DIR}/${TOOL_NAME}.tar.gz"
+  local -r extracted_path="${TMP_DOWNLOAD_DIR}/extracted"
+
+  [ "$install_type" != "version" ] && error_exit "Error: ref installs are not supported"
+
+  echo "Downloading from ${download_url}"
+  if curl -fL -o "$download_path" "$download_url"; then
+    mkdir "$extracted_path"
+    tar -xzf "$download_path" -C "$extracted_path" --strip-components 1
+
+    echo "Compiling"
+    make -sC "$extracted_path"
+
+    echo "Installing"
+    mkdir -p "$install_path_bin"
+    mv "${extracted_path}"/{jsonnet,jsonnetfmt} "$install_path_bin"
+  else
+    error_exit "Error: ${TOOL_NAME} version ${install_version} not found"
+  fi
+}
+
+#
+install "$ASDF_INSTALL_TYPE" "$ASDF_INSTALL_VERSION" "$ASDF_INSTALL_PATH"
