@@ -37,7 +37,8 @@ install() {
 
     echo "Installing"
     mkdir -p "$install_path_bin"
-    mv "${extracted_path}"/{jsonnet,jsonnetfmt} "$install_path_bin"
+    mv "${extracted_path}/jsonnet" "$install_path_bin"
+    [ -f "${extracted_path}/jsonnetfmt" ] && mv "${extracted_path}/jsonnetfmt" "$install_path_bin"
   else
     error_exit "Error: ${TOOL_NAME} version ${install_version} not found"
   fi
